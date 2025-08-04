@@ -19,10 +19,23 @@ A simple implementation of **Deep Reinforcement Learning Algorithms** using **Op
 
 ## Prepare
 
-```python
+```bash
 conda create -n atari python=3.10
 conda activate atari
 pip install -r requirements.txt
+```
+
+## Code_Structure
+```plaintext
+ReinforcementLearning/                    
+├── DQN/
+│   ├── DQN_train.py
+│   ├── DQN_eval.py
+├── REINFORCE/
+├── ...
+├── ...
+├── requirements.txt
+└── README.md
 ```
 
 # Train
