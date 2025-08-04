@@ -25,17 +25,6 @@ conda activate atari
 pip install -r requirements.txt
 ```
 
-## Code_Structure
-ReinforcementLearning/                    
-├── DQN/
-│   ├── DQN_train.py
-│   ├── DQN_eval.py
-├── REINFORCE/
-├── ...
-├── ...
-├── requirements.txt
-└── README.md
-
 # Train
 python ~/ReinforcementLearning/DQN/classic_dqn/DQN_train.py 
 
