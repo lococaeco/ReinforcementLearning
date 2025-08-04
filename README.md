@@ -1,3 +1,11 @@
+<div align="center">
+
+This repo is currently unstable except for dqn. However, it is continuously being updated.
+
+
+<img src="https://myhits.vercel.app/api/hit/https%3A%2F%2Fdeku.posstree.com?color=blue&label=hits&size=small" alt="hits" />
+
+
 # RL-code
 
 A simple implementation of **Deep Q-Network (DQN)** using **OpenAI Gym**.
