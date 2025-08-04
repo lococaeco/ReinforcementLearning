@@ -3,12 +3,9 @@
 This repo is currently unstable except for dqn. However, it is continuously being updated.
 
 
-<img src="https://myhits.vercel.app/api/hit/https%3A%2F%2Fdeku.posstree.com?color=blue&label=hits&size=small" alt="hits" />
-
-
 # RL-code
 
-A simple implementation of **Deep Q-Network (DQN)** using **OpenAI Gym**.
+A simple implementation of **Deep Reinforcement Learning Algorithms** using **OpenAI Gym**.
 
 ---
 
@@ -20,8 +17,6 @@ A simple implementation of **Deep Q-Network (DQN)** using **OpenAI Gym**.
 
 ---
 
-
-
 ## Prepare
 
 ```python
@@ -32,21 +27,21 @@ pip install -r requirements.txt
 
 ## Code_Structure
 ```python
-RL-code/                    
-├── dqn/
-│   ├── agent.py
-│   ├── model.py
-│   └── utils.py
-├── train.py
-├── eval.py
+ReinforcementLearning/                    
+├── DQN/
+│   ├── DQN_train.py
+│   ├── DQN_eval.py
+├── REINFORCE/
+├── ...
+├── ...
 ├── requirements.txt
 └── README.md
 ```
 
-
 # Train
-python train.py --env Breakout-v5
+python ~/ReinforcementLearning/DQN/classic_dqn/DQN_train.py 
 
 # Eval
-python eval.py --env Breakout-v5
+python ~/ReinforcementLearning/DQN/classic_dqn/DQN_eval.py 
+
 
