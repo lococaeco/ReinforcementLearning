@@ -26,7 +26,6 @@ pip install -r requirements.txt
 ```
 
 ## Code_Structure
-```python
 ReinforcementLearning/                    
 ├── DQN/
 │   ├── DQN_train.py
@@ -36,7 +35,6 @@ ReinforcementLearning/
 ├── ...
 ├── requirements.txt
 └── README.md
-```
 
 # Train
 python ~/ReinforcementLearning/DQN/classic_dqn/DQN_train.py 
