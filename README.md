@@ -3,12 +3,18 @@
 This repo is currently unstable except for dqn. However, it is continuously being updated.
 
 
+<table>
+  <tr>
+    <td align="center"><img src="img/Alien.gif" width="250"/><br>Alien</td>
+    <td align="center"><img src="img/Breakout.gif" width="250"/><br>Breakout</td>
+    <td align="center"><img src="img/Boxing.gif" width="250"/><br>Boxing</td>
+  </tr>
+</table>
+
+
 <div style="display: flex; justify-content: center; gap: 10px;">
-  <img src="img/Alien.gif" width="250"/>
-  <img src="img/Breakout.gif" width="250"/>
-  <img src="img/Boxing.gif" width="250"/>
-  <img src="img/Enduro.gif" width="250"/>
-  <img src="img/Pong.gif" width="250"/>
+    <img src="img/Enduro.gif" width="250"/>
+    <img src="img/Pong.gif" width="250"/>
 </div>
 
 
