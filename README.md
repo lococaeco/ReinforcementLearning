@@ -4,14 +4,13 @@ This repo is currently unstable except for dqn. However, it is continuously bein
 
 
 <div style="display: flex; justify-content: center; gap: 10px;">
-
-  <video src="img/Alien.mp4" width="250" controls></video>
-
-  <video src="img/Breakout.mp4" width="250" controls></video>
-
-  <video src="img/Boxing.mp4" width="250" controls></video>
-
+  <img src="img/Alien.gif" width="250"/>
+  <img src="img/Breakout.gif" width="250"/>
+  <img src="img/Boxing.gif" width="250"/>
+  <img src="img/Enduro.gif" width="250"/>
+  <img src="img/Pong.gif" width="250"/>
 </div>
+
 
 # RL-code
 
