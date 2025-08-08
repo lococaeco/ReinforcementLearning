@@ -12,12 +12,14 @@ This repo is currently unstable except for dqn. However, it is continuously bein
 </table>
 
 
+<div align="center">
 <table>
   <tr>
     <td align="center"><img src="img/Enduro.gif" width="250"/><br>Enduro</td>
     <td align="center"><img src="img/Pong.gif" width="250"/><br>Pong</td>
   </tr>
 </table>
+</div>
 
 
 
