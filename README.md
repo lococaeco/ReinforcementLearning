@@ -12,10 +12,13 @@ This repo is currently unstable except for dqn. However, it is continuously bein
 </table>
 
 
-<div style="display: flex; justify-content: center; gap: 10px;">
-    <img src="img/Enduro.gif" width="250"/>
-    <img src="img/Pong.gif" width="250"/>
-</div>
+<table>
+  <tr>
+    <td align="center"><img src="img/Enduro.gif" width="250"/><br>Enduro</td>
+    <td align="center"><img src="img/Pong.gif" width="250"/><br>Pong</td>
+  </tr>
+</table>
+
 
 
 # RL-code
