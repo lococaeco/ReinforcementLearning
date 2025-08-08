@@ -11,13 +11,14 @@ from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation, Record
 
 # 하이퍼파라미터
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# ENV_NAME = ["ALE/Breakout-v5", "ALE/Boxing-v5", "ALE/Enduro-v5", "ALE/Alien-v5", "ALE/Pong-v5"]
-ENV_NAME = ["ALE/Breakout-v5"]
-SEED = 3 
+ENV_NAME = ["ALE/Breakout-v5", "ALE/Boxing-v5", "ALE/Enduro-v5", "ALE/Alien-v5", "ALE/Pong-v5"]
+# ENV_NAME = ["ALE/Breakout-v5"]
+TRAINEDSEED = 3
+EVALSEED = 6
 MODEL_DIR = "./model"
 
-np.random.seed(SEED)
-torch.manual_seed(SEED)
+np.random.seed(EVALSEED)
+torch.manual_seed(EVALSEED)
 torch.backends.cudnn.deterministic = True
 
 # Q-Network 정의
@@ -43,7 +44,7 @@ class QNetwork(nn.Module):
 # 영상 기록 + 학습된 모델 추론
 for env_name in ENV_NAME:
     print(f"Rendering {env_name}...")
-    env = gym.make(env_name, frameskip=1, render_mode="rgb_array")
+    env = gym.make(env_name, frameskip=1, render_mode="rgb_array",repeat_action_probability=0.01)
     env = AtariPreprocessing(env, noop_max=30, frame_skip=4, screen_size=84, terminal_on_life_loss = False, grayscale_obs=True)
     env = FrameStackObservation(env, stack_size=4, padding_type="zero")
 
@@ -57,11 +58,11 @@ for env_name in ENV_NAME:
 
     # Q-Network 로드
     q_net = QNetwork(env).to(device)
-    model_path = os.path.join(MODEL_DIR, f"{env_name.split('/')[-1]}_seed{SEED}", "dqn_latest.pth")
+    model_path = os.path.join(MODEL_DIR, f"{env_name.split('/')[-1]}_seed{TRAINEDSEED}", "dqn_latest.pth")
     q_net.load_state_dict(torch.load(model_path, map_location=device))
     q_net.eval()
     for episode in range(1):
-        obs, _ = env.reset(seed=SEED + 4)
+        obs, _ = env.reset(seed=EVALSEED)
         done = False
         total_reward = 0
         while not done:

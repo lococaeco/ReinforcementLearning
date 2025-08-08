@@ -8,179 +8,210 @@ import os
 import torch.nn.functional as F
 import wandb
 
-# 저장 경로
 save_dir = "./model"
 os.makedirs(save_dir, exist_ok=True)
 
-ENV_NAME = ["HalfCheetah-v5",
-            "Ant-v5",
-            "Hopper-v5",
-            "Humanoid-v5",
-            "HumanoidStandup-v5",
-            "InvertedDoublePendulum-v5",
-            "InvertedPendulum-v5",
-            "Pusher-v5",
-            "Reacher-v5",
-            "Swimmer-v5",
-            "Walker2d-v5"]
+
+ENV_NAME = ["HalfCheetah-v5"]
+
+# ENV_NAME = ["HalfCheetah-v5",
+#             "Ant-v5",
+#             "Hopper-v5",
+#             "Humanoid-v5",
+#             "HumanoidStandup-v5",
+#             "InvertedDoublePendulum-v5",
+#             "InvertedPendulum-v5",
+#             "Pusher-v5",
+#             "Reacher-v5",
+#             "Swimmer-v5",
+#             "Walker2d-v5"]
 
 
-def init_wandb(env_name, seed):
-    wandb.init(
-        project="TRPO",
-        group=env_name.replace("/", "_"),
-        name=f"{env_name.replace('/', '_')}_seed{seed}",
-        config={
-            "env_name": env_name,
-            "seed": seed,
-            "lr": LR,
-            "gamma": GAMMA,
-            "buffer_size": BUFFER_SIZE,
-            "batch_size": BATCH_SIZE,
-            "total_steps": TOTAL_STEP,
-            "train_freq": TRAIN_FREQ,
-            "target_update_freq": TARGET_UPDATE_FREQ,
-            "tau": TAU,
-            "start_e": START_E,
-            "end_e": END_E,
-            "exploration_fraction": FRACTION,
-            "learning_start": LEARNING_START,
-            "architecture": "DQN_CNN_3Conv_2FC",
-        },
-        save_code=True,
-        monitor_gym=True,
-    )
-
-class ActorCritic(nn.Module):
+class ContinuousPolicy(nn.Module):
     def __init__(self, obs_dim, act_dim):
         super().__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(obs_dim, 64), nn.Tanh(),
-            nn.Linear(64, 64), nn.Tanh()
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
         )
         self.mean_head = nn.Linear(64, act_dim)
-        self.std_head = nn.Linear(64, act_dim)
-        self.value_head = nn.Linear(64, 1)
+        self.log_std = nn.Parameter(torch.zeros(act_dim))  # 학습 가능한 std
 
-    def forward(self, x):
-        x = self.shared(x)
-        mean = self.mean_head(x)
-        std = torch.clamp(F.softplus(self.std_head(x)) + 1e-5, min=1e-3, max=1.0)
-        value = self.value_head(x).squeeze(-1)
-        return mean, std, value
+    def forward(self, obs):
+        x = self.net(obs)
+        action_mean = self.mean_head(x)
+        action_std = torch.exp(self.log_std)
+        return Normal(action_mean, action_std)  # Normal 분포 반환
 
-
-def compute_gae(rewards, values, next_value, dones, gamma, lam):
-    values = values + [next_value] #1000 + 1짜리 list
-    gae = 0
-    returns = []
-    for step in reversed(range(len(rewards))):
-        delta = rewards[step] + gamma * values[step + 1] * (1 - dones[step]) - values[step]
-        gae = delta + gamma * lam * (1 - dones[step]) * gae
-        returns.insert(0, gae + values[step])
-    return returns
-
-def worker(rank, global_model, optimizer):
-    env = gym.make(ENV_NAME)
-    obs_dim = env.observation_space.shape[0]
-    act_dim = env.action_space.shape[0]
-
-    local_model = ActorCritic(obs_dim, act_dim)
-    local_model.load_state_dict(global_model.state_dict()) #Global Model의 parameter을 복사해온다.
-
-    for episode in range(MAX_EPISODES):
-        state, _ = env.reset()
-        log_probs = [] #log(pi(a,s))
-        values = []
-        rewards = []
-        dones = []
-        entropies = []
-
-        done = False
-        total_reward = 0
-
-        while not done:
-            state_tensor = torch.tensor(state, dtype=torch.float32)
-            mean, std, value = local_model(state_tensor)
-            
-            dist = Normal(mean, std) # Actor Critic으로부터 얻은 평균과 분산으로 distribution을 만든다. [6] mean과 std가 각 action space의 size만큼 있기 때문에
-            
-            action = dist.sample() # Action은 위의 분포에서 6가지 값을 가져온다.
-
-            log_prob = dist.log_prob(action).sum()
-            entropy = dist.entropy().sum()
-
-            next_state, reward, terminated, truncated, infos = env.step(action.detach().numpy())
-            done = terminated or truncated
-
-            log_probs.append(log_prob)
-            values.append(value)
-            rewards.append(reward)
-            dones.append(done)
-            entropies.append(entropy)
-
-            total_reward += reward
-            state = next_state
-
-        next_state_tensor = torch.tensor(next_state, dtype=torch.float32)
+    def act(self, obs):
         with torch.no_grad():
-            _, _, next_value = local_model(next_state_tensor)
+            dist = self.forward(obs)
+            action = dist.sample()
+            return action.clamp(-1.0, 1.0), dist.log_prob(action)
 
-        returns = compute_gae(rewards, values, next_value, dones, GAMMA, LAMBDA) #이전 1000번간의 reward, value, next value, dones를 넣어준다.
+class ValueNetwork(nn.Module):
+    def __init__(self, obs_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
+            nn.Linear(64, 1)
+        )
 
-        returns = torch.tensor(returns, dtype=torch.float32)
-        values = torch.stack(values)
-        log_probs = torch.stack(log_probs)
-        entropies = torch.stack(entropies)
+    def forward(self, obs):
+        return self.net(obs).squeeze(-1)
 
-        advantages = returns - values.detach()
 
-        policy_loss = -(log_probs * advantages).sum()
-        value_loss = F.mse_loss(values, returns)
-        entropy_loss = -0.01 * entropies.sum()
-        loss = policy_loss + 0.5 * value_loss + entropy_loss
 
-        optimizer.zero_grad()
-        loss.backward()
-        for global_param, local_param in zip(global_model.parameters(), local_model.parameters()):
-            global_param._grad = local_param.grad
-        optimizer.step()
-        local_model.load_state_dict(global_model.state_dict())
+def calc_gae(rewards, values, dones, gamma, lamda):
+    advantages = []
+    gae = 0
+    next_value = 0
+    
+    for step in reversed(range(len(rewards))):
+        delta = rewards[step] + gamma * next_value * (1 - dones[step]) - values[step]
+        gae = delta + gamma * lamda * (1 - dones[step]) * gae
+        advantages.insert(0, gae) #왜 insert를 사용해야 되지.
+        next_value = values[step]
+        
+    return torch.tensor(advantages, dtype = torch.float32)
 
-        wandb.log({
-            f"worker_{rank}/episode": episode,
-            f"worker_{rank}/reward": total_reward,
-            f"worker_{rank}/loss": loss.item(),
-            f"worker_{rank}/policy_loss": policy_loss.item(),
-            f"worker_{rank}/value_loss": value_loss.item(),
-            f"worker_{rank}/entropy": entropies.mean().item()
-        })
 
-        if episode % 10 == 0:
-            print(f"[Worker {rank}] Episode {episode} | Total Reward: {total_reward:.2f}")
+
+def process_trajectory(trajectory, value_net, gamma=0.99, lamda=0.97):
+    states, actions, rewards, dones = zip(*trajectory)
+
+    states = torch.tensor(np.stack(states), dtype=torch.float32)
+    actions = torch.tensor(np.stack(actions), dtype=torch.float32)
+    rewards = torch.tensor(rewards, dtype=torch.float32)
+    dones = torch.tensor(dones, dtype=torch.float32)
+
+    with torch.no_grad():
+        values = value_net(states)
+
+    advantages = calc_gae(rewards, values, dones, gamma, lamda)
+    returns = advantages + values
+
+    return {
+        "obs": states,
+        "acts": actions,
+        "advs": advantages,
+        "returns": returns
+    }
+    
+    
+def surrogate_loss(policy, obs, acts, advs, old_log_probs):
+    dist = policy(obs)
+    new_log_probs = dist.log_prob(acts).sum(axis=-1)
+    ratio = torch.exp(new_log_probs - old_log_probs)
+    return - (ratio * advs).mean()
+
+def conjugate_gradient():
+    return 0
+
+
+def line_search():
+    return 0
+
+def mean_kl_divergence():
+    return 0
+
 
 def train():
-    env = gym.make(ENV_NAME)
+    env = gym.make(ENV_NAME[0])
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
-    env.close()
+    policy = ContinuousPolicy(obs_dim, act_dim)
+    value_net = ValueNetwork(obs_dim)
 
-    global_model = ActorCritic(obs_dim, act_dim)
-    global_model.share_memory()
-    optimizer = torch.optim.Adam(global_model.parameters(), lr=LR)
+    obs, _ = env.reset()
+    obs = torch.tensor(obs, dtype=torch.float32)
 
-    processes = []
-    for rank in range(NUM_WORKERS):
-        p = mp.Process(target=worker, args=(rank, global_model, optimizer))
-        p.start()
-        processes.append(p)
+    trajectory = []
+    total_reward = 0
+    for step in range(1000):
+        action, log_prob = policy.act(obs)
+        action_np = action.numpy()
 
-    for p in processes:
-        p.join()
+        next_obs, reward, terminated, truncated, _ = env.step(action_np)
+        done = terminated or truncated
 
-    torch.save(global_model.state_dict(), os.path.join(save_dir, "a3c_actor_critic.pt"))
-    print("Training complete. Model saved.")
+        trajectory.append((obs.numpy(), action_np, reward, done))
+        total_reward += reward
+
+        if done:
+            break
+        obs = torch.tensor(next_obs, dtype=torch.float32)
+
+    print(f"Trajectory length: {len(trajectory)}, Total reward: {total_reward:.2f}")
+
+    #advantage, return 계산
+    batch = process_trajectory(trajectory, value_net)
+    print(f"Advantage mean: {batch['advs'].mean():.4f}, Return mean: {batch['returns'].mean():.4f}")
+
+    # Advantage, Return 계산 완료 후:
+    obs_batch = batch["obs"]
+    acts_batch = batch["acts"]
+    advs_batch = batch["advs"]
+    returns_batch = batch["returns"]
+
+    with torch.no_grad():
+        dist = policy(obs_batch) 
+        old_log_probs = dist.log_prob(acts_batch).sum(-1)
+
+    # Surrogate loss 계산
+    loss = surrogate_loss(policy, obs_batch, acts_batch, advs_batch, old_log_probs)
+    print(f"Surrogate loss: {loss.item():.4f}")
+        
+
 
 if __name__ == "__main__":
-    mp.set_start_method('spawn')
     train()
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# 우리는 Surrogate Loss를 최대화시키면서, state visitation에 의해 importance sampling 된 분포 아래에서 
+# policy 간의 KL-Divergence가 작은 new policy를 찾아야됨.
+
+# Monte Carlo 방법에서는 1, 2, 3 방법을 통해 기존 이론을 실험적으로 변화를 주었다.
+
+
+# for iteration in range(max_iters):
+#     # 1. Trajectory rollout 
+#     obs, acts, rewards, values, dones = collect_trajectory()
+
+#     # 2. Compute advantages
+#     advs = compute_gae(rewards, values, dones)
+
+#     # 3. Backup old policy
+#     old_policy.load_state_dict(policy.state_dict())
+
+#     # 4. Compute surrogate loss gradient
+#     loss = surrogate_loss(policy, old_policy, obs, acts, advs)
+#     grads = torch.autograd.grad(loss, policy.parameters())
+#     loss_grad = torch.cat([g.view(-1) for g in grads]).data
+
+#     # 5. Compute natural gradient step
+#     step_dir = conjugate_gradient(
+#         lambda v: fisher_vector_product(policy, obs, v), -loss_grad
+#     )
+#     max_step = np.sqrt(2 * max_kl / (step_dir @ fisher_vector_product(policy, obs, step_dir)))
+#     full_step = max_step * step_dir
+
+#     # 6. Line search to satisfy KL constraint
+#     success = linesearch(policy, old_policy, full_step, loss_grad @ step_dir, obs, acts, advs)

@@ -143,7 +143,7 @@ if __name__ == "__main__":
                 lambda: EpisodicLifeEnv( 
                     gym.wrappers.FrameStackObservation(
                     gym.wrappers.AtariPreprocessing(
-                        gym.make(env_name, frameskip=1),
+                        gym.make(env_name, frameskip=1,repeat_action_probability=0),
                         noop_max=30,
                         frame_skip=4,
                         screen_size=84,

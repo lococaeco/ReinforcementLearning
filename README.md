@@ -3,6 +3,16 @@
 This repo is currently unstable except for dqn. However, it is continuously being updated.
 
 
+<div style="display: flex; justify-content: center; gap: 10px;">
+
+  <video src="img/Alien.mp4" width="250" controls></video>
+
+  <video src="img/Breakout.mp4" width="250" controls></video>
+
+  <video src="img/Boxing.mp4" width="250" controls></video>
+
+</div>
+
 # RL-code
 
 A simple implementation of **Deep Reinforcement Learning Algorithms** using **OpenAI Gym**.
