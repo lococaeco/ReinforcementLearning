@@ -1,0 +1,8 @@
+wandb/
+video/
+model/
+
+.venv/
+__pycache__/
+*.pyc
+.python-version
