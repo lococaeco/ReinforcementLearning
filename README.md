@@ -28,3 +28,6 @@ This repo is currently unstable except for dqn. However, it is continuously bein
 
 A simple implementation of **Deep Reinforcement Learning Algorithms** using **OpenAI Gym**.
  -->
+
+<div align="center">
+This repo is inspired by cleanrl and CORL. and I am continuously updating.
