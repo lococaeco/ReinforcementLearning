@@ -1,1 +1,24 @@
-hi
+project: "Online"
+group: "sac-halfcheetah-v5"
+name: "SAC"
+env_name: "HalfCheetah-v5"
+num_epochs: 1000
+actor_learning_rate: 0.0003
+alpha_learning_rate: 0.0003
+batch_size: 256
+buffer_size: 1000000
+checkpoints_path: "model"
+critic_learning_rate: 0.0003
+deterministic_torch: false
+device: cuda
+eval_episodes: 1
+eval_every: 50
+eval_seed: 42
+gamma: 0.99
+hidden_dim: 256
+log_every: 100
+max_action: 1.0
+num_updates_on_epoch: 1000
+tau: 0.005
+train_seed: 10
+train_start: 10000
